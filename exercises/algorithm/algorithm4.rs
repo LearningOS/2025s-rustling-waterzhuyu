@@ -3,7 +3,6 @@
 	This problem requires you to implement a basic interface for a binary tree
 */
 
-//I AM NOT DONE
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
@@ -51,12 +50,21 @@ where
     // Insert a value into the BST
     fn insert(&mut self, value: T) {
         //TODO
+        if self.root.is_none() {
+            self.root = Some(Box::new(TreeNode::new(value)));
+        } else {
+            self.root.as_mut().unwrap().insert(value);
+        }
     }
 
     // Search for a value in the BST
     fn search(&self, value: T) -> bool {
         //TODO
-        true
+        if self.root.is_none() {
+            return false;
+        } else {
+            self.root.as_ref().unwrap().search(value)
+        }
     }
 }
 
@@ -64,9 +72,85 @@ impl<T> TreeNode<T>
 where
     T: Ord,
 {
+    fn search(&self, value: T) -> bool {
+        match value.cmp(&self.value) {
+            Ordering::Equal => true,
+            Ordering::Less => {
+                if self.left.is_none() {
+                    false
+                } else {
+                    self.left.as_ref().unwrap().search(value)
+                }
+            },
+            Ordering::Greater => {
+                if self.right.is_none() {
+                    false
+                } else {
+                    self.right.as_ref().unwrap().search(value)
+                }
+            }
+        }
+    }
+
     // Insert a node into the tree
     fn insert(&mut self, value: T) {
-        //TODO
+        // recursive v1
+        // if self.left.is_none() && value < self.value {
+        //     self.left = Some(Box::new(TreeNode::new(value)));
+        // } else if self.right.is_none() && value > self.value {
+        //     self.right = Some(Box::new(TreeNode::new(value)));
+        // } else {
+        //     if value < self.value {
+        //         self.left.as_mut().unwrap().insert(value);
+        //     } else {
+        //         self.right.as_mut().unwrap().insert(value);
+        //     }
+        // }
+
+        // optimized recursive v2
+        // match value.cmp(&self.value) {
+        //     Ordering::Less => {
+        //         if self.left.is_none() {
+        //             self.left = Some(Box::new(TreeNode::new(value)));
+        //         } else {
+        //             self.left.as_mut().unwrap().insert(value);
+        //         }
+        //     },
+
+        //     Ordering::Greater => {
+        //         if self.right.is_none() {
+        //             self.right = Some(Box::new(TreeNode::new(value)));
+        //         } else {
+        //             self.right.as_mut().unwrap().insert(value);
+        //         }
+        //     },
+            
+        //     Ordering::Equal => {},
+        // }
+
+        // optimized iterative v3
+        let mut curr = self;
+        loop {
+            match value.cmp(&curr.value) {
+                Ordering::Equal => { break; },
+                Ordering::Greater => {
+                    if curr.right.is_none() {
+                        curr.right = Some(Box::new(TreeNode::new(value)));
+                        break;
+                    } else {
+                        curr = curr.right.as_mut().unwrap();
+                    }
+                },
+                Ordering::Less => {
+                    if curr.left.is_none() {
+                        curr.left = Some(Box::new(TreeNode::new(value)));
+                        break;
+                    } else {
+                        curr = curr.left.as_mut().unwrap();
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -2,7 +2,6 @@
 	single linked list merge
 	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
@@ -11,8 +10,9 @@ use std::vec::*;
 #[derive(Debug)]
 struct Node<T> {
     val: T,
-    next: Option<NonNull<Node<T>>>,
-}
+    next: Option<NonNull<Node<T>>>, // NonNull<T> wraps a raw pointer of T, i.e. *mut T.
+}                                   // and promise it's non-null.
+        // using NonNull (raw pointer) manage memory, but it doesn't own memory by itself
 
 impl<T> Node<T> {
     fn new(t: T) -> Node<T> {
@@ -45,7 +45,8 @@ impl<T> LinkedList<T> {
     }
 
     pub fn add(&mut self, obj: T) {
-        let mut node = Box::new(Node::new(obj));
+        // The actual ownership is moved by Box
+        let mut node = Box::new(Node::new(obj)); // with ownership
         node.next = None;
         let node_ptr = Some(unsafe { NonNull::new_unchecked(Box::into_raw(node)) });
         match self.end {
@@ -69,15 +70,149 @@ impl<T> LinkedList<T> {
             },
         }
     }
-	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
-	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+
+    // ---------------------------------------------------------------------------------------
+    // Recursive Implementation
+    // pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
+	// {
+	// 	//TODO
+    //     let merged = Self::merge_nodes(list_a.start, list_b.start);
+	// 	Self {
+    //         length: list_a.length + list_b.length,
+    //         start: merged,
+    //         end: LinkedList::node_after_ith_node(merged,  (list_a.length + list_b.length) as i32),
+    //     }
+	// }
+
+    // fn node_after_ith_node(node: Option<NonNull<Node<T>>>, index: i32) -> Option<NonNull<Node<T>>> {
+    //     match node {
+    //         None => None,
+    //         Some(next_ptr) => match index {
+    //             0 => Some(unsafe {
+    //                 NonNull::new_unchecked(next_ptr.as_ptr())
+    //             }),
+    //             _ => LinkedList::node_after_ith_node(unsafe {(*next_ptr.as_ptr()).next}, index - 1),
+    //         }
+    //     }
+    // }
+
+    // fn merge_nodes(node_a: Option<NonNull<Node<T>>>, node_b: Option<NonNull<Node<T>>>) -> Option<NonNull<Node<T>>> {
+    //     match (node_a, node_b) {
+    //         (None, None) => None,
+    //         (Some(ptr), None) | (None, Some(ptr)) => Some(ptr),
+    //         (Some(l), Some(r)) => {
+    //             let val_a = unsafe { &(*l.as_ptr()).val };
+    //             let val_b = unsafe { &(*r.as_ptr()).val };
+    //             if val_a < val_b {
+    //                 unsafe {
+    //                     (*l.as_ptr()).next = Self::merge_nodes((*l.as_ptr()).next, Some(r));
+    //                 }
+    //                 Some(l)
+    //             } else {
+    //                 unsafe {
+    //                     (*r.as_ptr()).next = Self::merge_nodes(Some(l), (*r.as_ptr()).next);
+    //                 }
+    //                 Some(r)
+    //             }
+    //         }
+    //     }
+    // }
+    // ----------------------------------------------------------------------------------------
+
+    //TODO: Shall we take ownership of Node of list_a & list_b?
+    // Version1: don't take ownership
+    // V2: takes ownership
+    // pub fn merge(list_a: LinkedList<T>, list_b: LinkedList<T>) -> Self 
+    // where T: PartialOrd + Clone   
+    // {
+    // // Iterative implementation
+    //     let mut merged = LinkedList::new();
+    //     let mut ptr_a = list_a.start;  // move ownership
+    //     let mut ptr_b = list_b.start;  // move ownership
+
+    //     while ptr_a.is_some() && ptr_b.is_some() {
+    //         let val_a = unsafe { (*ptr_a.unwrap().as_ptr()).val.clone() };
+    //         let val_b = unsafe { (*ptr_b.unwrap().as_ptr()).val.clone() };
+
+    //         if val_a < val_b {
+    //             merged.add(val_a);
+    //             ptr_a = unsafe {
+    //                 (*ptr_a.unwrap().as_ptr()).next
+    //             }
+    //         } else {
+    //             merged.add(val_b);
+    //             ptr_b = unsafe {
+    //                 (*ptr_b.unwrap().as_ptr()).next
+    //             }
+    //         }
+    //     }
+
+    //     while ptr_a.is_some() {
+    //         let val_a = unsafe { (*ptr_a.unwrap().as_ptr()).val.clone() };
+    //         merged.add(val_a);
+    //         ptr_a = unsafe { (*ptr_a.unwrap().as_ptr()).next };
+    //     }
+
+    //     while ptr_b.is_some() {
+    //         let val_b = unsafe { (*ptr_b.unwrap().as_ptr()).val.clone() };
+    //         merged.add(val_b);
+    //         ptr_b = unsafe { (*ptr_b.unwrap().as_ptr()).next };
+    //     }
+
+    //     merged.end = match merged.start {
+    //         Some(mut node) => {
+    //             while unsafe { node.as_ref().next.is_some() } {
+    //                 node = unsafe { node.as_ref().next.unwrap() };
+    //             }
+    //             Some(node)
+    //         },
+    //         None => None
+    //     };
+
+    //     merged
+    // }
+    
+    pub fn merge(list_a: LinkedList<T>, list_b: LinkedList<T>) -> Self 
+    where T: PartialOrd
+    {
+        let mut merged = LinkedList::new();
+        let mut ptr_a = list_a.start;  // move ownership
+        let mut ptr_b = list_b.start;  // move ownership
+
+        let mut curr = &mut merged.start;
+        while ptr_a.is_some() && ptr_b.is_some() {
+            unsafe {
+                if (*ptr_a.unwrap().as_ptr()).val < (*ptr_b.unwrap().as_ptr()).val {
+                    *curr = ptr_a;
+                    ptr_a = (*ptr_a.unwrap().as_ptr()).next;
+                } else {
+                    *curr = ptr_b;
+                    ptr_b = (*ptr_b.unwrap().as_ptr()).next;
+                }
+
+                curr = &mut (*curr.unwrap().as_ptr()).next;
+            }
         }
-	}
+
+        *curr = if ptr_a.is_some() {
+            ptr_a
+        } else {
+            ptr_b
+        };
+
+        merged.length = list_a.length + list_b.length;
+        merged.end = match merged.start {
+            Some(mut node) => {
+                while unsafe { node.as_ref().next.is_some() } {
+                    node = unsafe { (*node.as_ptr()).next.unwrap() };
+                }
+                Some(node)
+            },
+            None => None
+        };
+
+        merged
+    }
 }
 
 impl<T> Display for LinkedList<T>
@@ -170,4 +305,9 @@ mod tests {
 			assert_eq!(target_vec[i],*list_c.get(i as i32).unwrap());
 		}
 	}
+
+    // #[test]
+    // fn test_ownership_management() {
+
+    // }
 }

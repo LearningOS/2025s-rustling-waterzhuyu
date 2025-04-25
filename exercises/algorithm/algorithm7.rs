@@ -3,7 +3,6 @@
 	This question requires you to use a stack to achieve a bracket match
 */
 
-// I AM NOT DONE
 #[derive(Debug)]
 struct Stack<T> {
 	size: usize,
@@ -32,7 +31,12 @@ impl<T> Stack<T> {
 	}
 	fn pop(&mut self) -> Option<T> {
 		// TODO
-		None
+		if self.size == 0 {
+			None
+		} else {
+			self.size -= 1;
+			self.data.pop()
+		}
 	}
 	fn peek(&self) -> Option<&T> {
 		if 0 == self.size {
@@ -68,18 +72,21 @@ impl<T> Stack<T> {
 		iterator
 	}
 }
-struct IntoIter<T>(Stack<T>);
+
+struct IntoIter<T>(Stack<T>); // move the ownership
 impl<T: Clone> Iterator for IntoIter<T> {
 	type Item = T;
 	fn next(&mut self) -> Option<Self::Item> {
 		if !self.0.is_empty() {
-			self.0.size -= 1;self.0.data.pop()
+			self.0.size -= 1;
+			self.0.data.pop()
 		} 
 		else {
 			None
 		}
 	}
 }
+
 struct Iter<'a, T: 'a> {
 	stack: Vec<&'a T>,
 }
@@ -102,7 +109,30 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 fn bracket_match(bracket: &str) -> bool
 {
 	//TODO
-	true
+	let mut stack = Stack::new();
+	for c in bracket.chars() {
+		match c {
+			'(' | '[' | '{' => stack.push(c),
+			')' | ']' | '}' => {
+				if let Some(top) = stack.pop() {
+					if !bracet_matches(top, c) {
+						return false;
+					}
+				} else {
+					return false;
+				}
+			}
+			_ => continue,
+		}
+	}
+	stack.is_empty()
+}
+
+fn bracet_matches(left: char, right: char) -> bool {
+	match (left, right) {
+		('(', ')') | ('[', ']') | ('{', '}') => true,
+		_ => false,
+	}
 }
 
 #[cfg(test)]
